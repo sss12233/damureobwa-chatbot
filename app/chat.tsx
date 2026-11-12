@@ -84,6 +84,8 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLLIElement>(null);
+  // 대화 초기화를 누르면 1씩 올려서, 초기화 전에 보낸 질문의 늦은 답이 새 대화에 끼지 않게 한다.
+  const sessionRef = useRef(0);
   // 눌러서 펼친 키워드 (없으면 null)
   const [openKeyword, setOpenKeyword] = useState<string | null>(null);
 
@@ -114,6 +116,15 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  // 대화 초기화: 첫 인사말 상태로 되돌리고 키워드·입력 칸도 비운다.
+  function resetChat() {
+    sessionRef.current += 1;
+    setMessages([GREETING]);
+    setInput("");
+    setOpenKeyword(null);
+    setLoading(false);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void sendQuestion(input);
@@ -124,6 +135,7 @@ export default function Chat() {
     const question = text.trim();
     if (!question || loading) return;
 
+    const session = sessionRef.current;
     const next: Message[] = [...messages, { role: "user", text: question }];
     setMessages(next);
     setInput("");
@@ -151,22 +163,33 @@ export default function Chat() {
       const data: { answer?: string } = await response.json();
       if (!data.answer) throw new Error("빈 답");
 
+      if (session !== sessionRef.current) return;
       setMessages((prev) => [...prev, { role: "bot", text: data.answer! }]);
     } catch {
+      if (session !== sessionRef.current) return;
       setMessages((prev) => [
         ...prev,
         { role: "bot", text: ERROR_MESSAGE, isError: true },
       ]);
     } finally {
-      setLoading(false);
+      if (session === sessionRef.current) setLoading(false);
     }
   }
 
   return (
     <div className="flex h-full w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/30 bg-black/30 text-white shadow-2xl backdrop-blur-md">
-      <header className="border-b border-white/20 px-5 py-4">
-        <p className="text-xs uppercase tracking-[3px] text-white/80">공무원 직무전문교육</p>
-        <h1 className="font-display text-2xl font-medium">다물어봐 챗봇</h1>
+      <header className="flex items-center justify-between gap-3 border-b border-white/20 px-5 py-4">
+        <div>
+          <p className="text-xs uppercase tracking-[3px] text-white/80">공무원 직무전문교육</p>
+          <h1 className="font-display text-2xl font-medium">다물어봐 챗봇</h1>
+        </div>
+        <button
+          type="button"
+          onClick={resetChat}
+          className="shrink-0 rounded-full border border-white/40 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+        >
+          🔄 대화 초기화
+        </button>
       </header>
 
       <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
@@ -226,20 +249,22 @@ export default function Chat() {
       {related && (
         <div
           aria-label={`${related.label} 관련 질문`}
-          className="flex flex-col gap-1 border-t border-white/20 px-5 py-2"
+          className="flex flex-col gap-2 border-t border-white/20 px-5 py-2"
         >
           <p className="text-xs text-white/70">{related.label} 관련 질문</p>
-          {related.questions.map((question) => (
-            <button
-              key={question}
-              type="button"
-              disabled={loading}
-              onClick={() => void sendQuestion(question)}
-              className="rounded-lg px-3 py-1.5 text-left text-sm text-white hover:bg-white/20 disabled:opacity-40"
-            >
-              {question}
-            </button>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {related.questions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                disabled={loading}
+                onClick={() => void sendQuestion(question)}
+                className="rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-sm text-white transition hover:bg-white/25 disabled:opacity-40"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

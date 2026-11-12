@@ -72,12 +72,14 @@ function parseMessages(body: unknown): ChatMessage[] | null {
   const question = last.content.trim();
   if (question.length === 0 || question.length > MAX_QUESTION_LENGTH) return null;
 
-  // 보안: 화면이 보낸 "챗봇이 한 말(assistant)"은 진짜인지 확인할 수 없으므로 버리고,
-  // 이용자 질문만 AI에게 넘긴다. 앞쪽 질문도 500자 제한을 똑같이 적용한다.
-  const userMessages = messages.filter((m) => m.role === "user");
-  if (userMessages.some((m) => m.content.length > MAX_QUESTION_LENGTH)) return null;
+  // 앞쪽 질문도 500자 제한을 똑같이 적용한다.
+  if (messages.some((m) => m.role === "user" && m.content.length > MAX_QUESTION_LENGTH)) {
+    return null;
+  }
 
-  return userMessages;
+  // 챗봇이 한 말(assistant)도 함께 넘긴다. 빼면 AI가 "답 없이 쌓인 이전 질문"에도
+  // 다시 답해서 이전 답변이 새 답변에 붙어 나오기 때문이다. (길이 제한은 위에서 이미 적용됨)
+  return messages;
 }
 
 // 보안: 우리 화면(같은 사이트)에서 보낸 JSON 요청만 받는다.

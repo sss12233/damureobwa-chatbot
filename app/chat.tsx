@@ -163,10 +163,10 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-full w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <header className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-        <p className="text-xs text-zinc-500">공무원 직무전문교육</p>
-        <h1 className="text-lg font-semibold">다물어봐 챗봇</h1>
+    <div className="flex h-full w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/30 bg-black/30 text-white shadow-2xl backdrop-blur-md">
+      <header className="border-b border-white/20 px-5 py-4">
+        <p className="text-xs uppercase tracking-[3px] text-white/80">공무원 직무전문교육</p>
+        <h1 className="font-display text-2xl font-medium">다물어봐 챗봇</h1>
       </header>
 
       <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
@@ -175,27 +175,27 @@ export default function Chat() {
             key={index}
             className={
               message.role === "user"
-                ? "max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-sm bg-blue-600 px-4 py-2 text-white"
-                : "max-w-[80%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                ? "max-w-[80%] self-end whitespace-pre-wrap rounded-2xl rounded-br-sm bg-[#f87b97] px-4 py-2 text-white"
+                : "max-w-[80%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-white/90 px-4 py-2 text-zinc-900"
             }
           >
             {message.text}
           </li>
         ))}
         {loading && (
-          <li className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2 text-zinc-500 dark:bg-zinc-800">
+          <li className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-white/80 px-4 py-2 text-zinc-600">
             답변 작성 중…
           </li>
         )}
         {followUps.length > 0 && (
           <li className="flex flex-wrap items-center gap-2 self-start">
-            <span className="text-xs text-zinc-500">이어서 물어보기</span>
+            <span className="text-xs text-white/70">이어서 물어보기</span>
             {followUps.map((question) => (
               <button
                 key={question}
                 type="button"
                 onClick={() => void sendQuestion(question)}
-                className="rounded-full border border-blue-200 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950"
+                className="rounded-full border border-white/50 px-3 py-1 text-sm text-white hover:bg-white/20"
               >
                 {question}
               </button>
@@ -214,7 +214,7 @@ export default function Chat() {
               type="button"
               disabled={loading}
               onClick={() => void sendQuestion(suggestion)}
-              className="rounded-full border border-blue-200 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-40 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950"
+              className="rounded-full border border-white/50 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-40"
             >
               {suggestion}
             </button>
@@ -226,16 +226,16 @@ export default function Chat() {
       {related && (
         <div
           aria-label={`${related.label} 관련 질문`}
-          className="flex flex-col gap-1 border-t border-zinc-200 px-5 py-2 dark:border-zinc-800"
+          className="flex flex-col gap-1 border-t border-white/20 px-5 py-2"
         >
-          <p className="text-xs text-zinc-500">{related.label} 관련 질문</p>
+          <p className="text-xs text-white/70">{related.label} 관련 질문</p>
           {related.questions.map((question) => (
             <button
               key={question}
               type="button"
               disabled={loading}
               onClick={() => void sendQuestion(question)}
-              className="rounded-lg px-3 py-1.5 text-left text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-40 dark:text-blue-300 dark:hover:bg-blue-950"
+              className="rounded-lg px-3 py-1.5 text-left text-sm text-white hover:bg-white/20 disabled:opacity-40"
             >
               {question}
             </button>
@@ -244,8 +244,8 @@ export default function Chat() {
       )}
 
       {/* 중요 키워드: 항상 보인다. 누르면 관련 질문이 펼쳐지고, 다시 누르면 접힌다. */}
-      <div className="flex flex-wrap gap-2 border-t border-zinc-200 px-5 py-2 dark:border-zinc-800">
-        <span className="self-center text-xs text-zinc-500">
+      <div className="flex flex-wrap gap-2 border-t border-white/20 px-5 py-2">
+        <span className="self-center text-xs text-white/70">
           중요 키워드
         </span>
         {KEYWORDS.map((keyword) => {
@@ -260,8 +260,8 @@ export default function Chat() {
               }
               className={
                 active
-                  ? "shrink-0 rounded-full bg-blue-600 px-3 py-1 text-sm text-white"
-                  : "shrink-0 rounded-full border border-zinc-300 px-3 py-1 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  ? "shrink-0 rounded-full bg-[#f87b97] px-3 py-1 text-sm text-white"
+                  : "shrink-0 rounded-full border border-white/40 px-3 py-1 text-sm text-white hover:bg-white/15"
               }
             >
               {keyword.label}
@@ -273,14 +273,14 @@ export default function Chat() {
       {/* 개발 단위 4: 개인정보 안내 문구를 항상 보여 준다. */}
       <p
         role="note"
-        className="border-t border-amber-200 bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+        className="border-t border-white/20 bg-white/10 px-5 py-2 text-xs text-white/90"
       >
         ⚠️ 이름, 전화번호, 주민등록번호 등 개인정보는 입력하지 마세요. 질문은 답변을 만들기 위해 OpenAI(해외 AI 서비스)로 전달됩니다.
       </p>
 
       <form
         onSubmit={handleSubmit}
-        className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800"
+        className="flex gap-2 border-t border-white/20 p-3"
       >
         <input
           value={input}
@@ -288,12 +288,12 @@ export default function Chat() {
           placeholder="궁금한 점을 입력하세요"
           aria-label="질문 입력"
           maxLength={MAX_QUESTION_LENGTH}
-          className="flex-1 rounded-xl border border-zinc-300 bg-transparent px-4 py-2 outline-none focus:border-blue-600 dark:border-zinc-700"
+          className="flex-1 rounded-full border border-white/40 bg-white/10 px-5 py-2 text-white outline-none placeholder:text-white/60 focus:border-[#f87b97]"
         />
         <button
           type="submit"
           disabled={!input.trim() || loading}
-          className="rounded-xl bg-blue-600 px-5 py-2 font-medium text-white disabled:opacity-40"
+          className="rounded-full bg-[#f87b97] px-6 py-2 font-medium text-white disabled:opacity-40"
         >
           보내기
         </button>

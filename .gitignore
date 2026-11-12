@@ -46,3 +46,6 @@ next-env.d.ts
 # 작업 도구 기록 폴더 (커밋 금지)
 /.bkit/
 /.claude/
+
+.vercel
+.env*

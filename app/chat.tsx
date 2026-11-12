@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type Message = {
@@ -74,6 +75,25 @@ const KEYWORDS: { label: string; match: string[]; questions: string[] }[] = [
   },
 ];
 
+// 답변 속 전화번호(041-530-9078)와 웹주소(https://…)를 눌러 쓸 수 있는 링크로 바꾼다.
+const LINK_PATTERN = /(https?:\/\/[^\s)]+|0\d{1,2}-\d{3,4}-\d{4})/g;
+function renderWithLinks(text: string) {
+  return text.split(LINK_PATTERN).map((part, index) => {
+    if (index % 2 === 0) return part; // 일반 글자
+    const isUrl = part.startsWith("http");
+    return (
+      <a
+        key={index}
+        href={isUrl ? part : `tel:${part.replaceAll("-", "")}`}
+        {...(isUrl ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className="whitespace-nowrap font-medium text-blue-700 underline underline-offset-2"
+      >
+        {part}
+      </a>
+    );
+  });
+}
+
 const GREETING: Message = {
   role: "bot",
   text: "안녕하세요! 다물어봐 챗봇입니다. 교육 신청, 숙소, 수료증 등 궁금한 점을 물어보세요.",
@@ -89,11 +109,14 @@ export default function Chat() {
   // 눌러서 펼친 키워드 (없으면 null)
   const [openKeyword, setOpenKeyword] = useState<string | null>(null);
 
-  // 입력한 글에 키워드가 들어 있으면 그 키워드를, 아니면 눌러서 펼친 키워드를 보여 준다.
+  // 가장 마지막에 한 행동을 따른다: 키워드 버튼을 눌렀으면 그 키워드를,
+  // 그 뒤에 입력 칸에 글을 쓰면(쓸 때 누른 키워드가 풀린다) 글에 든 키워드를 보여 준다.
   const typedKeyword = KEYWORDS.find((k) =>
     k.match.some((word) => input.includes(word)),
   );
-  const related = typedKeyword ?? KEYWORDS.find((k) => k.label === openKeyword);
+  const related = openKeyword
+    ? KEYWORDS.find((k) => k.label === openKeyword)
+    : typedKeyword;
 
   // 이어서 물어볼 질문: 챗봇이 답한 직후, 방금 질문과 같은 주제의 다른 질문을 최대 2개 보여 준다.
   const lastMessage = messages[messages.length - 1];
@@ -177,11 +200,18 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-full w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/30 bg-black/30 text-white shadow-2xl backdrop-blur-md">
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-none bg-black/30 text-white backdrop-blur-md sm:max-w-xl sm:rounded-3xl sm:border sm:border-white/30 sm:shadow-2xl">
       <header className="flex items-center justify-between gap-3 border-b border-white/20 px-5 py-4">
-        <div>
-          <p className="text-xs uppercase tracking-[3px] text-white/80">공무원 직무전문교육</p>
-          <h1 className="font-display text-2xl font-medium">다물어봐 챗봇</h1>
+        <div className="flex items-center gap-3">
+          {/* 마스코트: 상자에서 로봇이 쏙쏙 튀어나오는 그림 (마이크로소프트 Fluent 3D 이모지, MIT 무료) */}
+          <div className="mascot relative h-14 w-14 shrink-0" aria-hidden="true">
+            <Image src="/mascot/robot.png" alt="" width={40} height={40} className="mascot-robot absolute left-2 top-[-14px]" />
+            <Image src="/mascot/box.png" alt="" width={56} height={56} className="absolute bottom-[-10px] left-0" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[3px] text-white/80">공무원 직무전문교육</p>
+            <h1 className="font-display text-2xl font-medium">다물어봐 챗봇</h1>
+          </div>
         </div>
         <button
           type="button"
@@ -202,12 +232,22 @@ export default function Chat() {
                 : "max-w-[80%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-white/90 px-4 py-2 text-zinc-900"
             }
           >
-            {message.text}
+            {message.role === "bot" ? renderWithLinks(message.text) : message.text}
           </li>
         ))}
         {loading && (
-          <li className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-white/80 px-4 py-2 text-zinc-600">
-            답변 작성 중…
+          <li
+            role="status"
+            aria-label="답변 작성 중"
+            className="flex items-center gap-1.5 self-start rounded-2xl rounded-bl-sm bg-white/90 px-4 py-3"
+          >
+            {[0, 1, 2].map((dot) => (
+              <span
+                key={dot}
+                className="thinking-dot h-2 w-2 rounded-full bg-zinc-500"
+                style={{ animationDelay: `${dot * 0.2}s` }}
+              />
+            ))}
           </li>
         )}
         {followUps.length > 0 && (
@@ -281,7 +321,8 @@ export default function Chat() {
               type="button"
               aria-pressed={active}
               onClick={() =>
-                setOpenKeyword(active && !typedKeyword ? null : keyword.label)
+                // 펼쳐 둔 키워드를 다시 누르면 접고, 다른 키워드를 누르면 입력 글과 상관없이 그것을 펼친다.
+                setOpenKeyword(openKeyword === keyword.label ? null : keyword.label)
               }
               className={
                 active
@@ -309,7 +350,10 @@ export default function Chat() {
       >
         <input
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            setOpenKeyword(null); // 새로 글을 쓰면 입력한 글의 키워드를 따른다
+          }}
           placeholder="궁금한 점을 입력하세요"
           aria-label="질문 입력"
           maxLength={MAX_QUESTION_LENGTH}
@@ -318,7 +362,7 @@ export default function Chat() {
         <button
           type="submit"
           disabled={!input.trim() || loading}
-          className="rounded-full bg-[#f87b97] px-6 py-2 font-medium text-white disabled:opacity-40"
+          className="whitespace-nowrap rounded-full bg-[#f87b97] px-6 py-2 font-medium text-white disabled:opacity-40"
         >
           보내기
         </button>

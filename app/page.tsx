@@ -1,31 +1,14 @@
 import Chat from "./chat";
+import SpaceBackground from "./space-background";
 
-// 꽃 영상 배경 위에 헤더와 챗봇 창을 올린다. (영상은 외부 주소에서 불러온다)
+// 우주 배경(별 + 떠다니는 로봇) 위에 헤더와 챗봇 창을 올린다.
 export default function Home() {
   return (
     <>
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        aria-hidden="true"
-        className="fixed inset-0 -z-20 h-full w-full object-cover"
-      >
-        <source
-          src="https://strvid.nyc3.cdn.digitaloceanspaces.com/cloudinary/flowers_motion_r54og5.webm"
-          type="video/webm"
-        />
-        <source
-          src="https://strvid.nyc3.cdn.digitaloceanspaces.com/cloudinary/flowers_motion_r54og5.mp4"
-          type="video/mp4"
-        />
-      </video>
-      {/* 글자가 잘 보이도록 영상 위에 옅은 그림자를 깐다 */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/30 via-black/15 to-black/20" />
+      <SpaceBackground />
 
-      <main className="relative z-0 flex h-dvh flex-col px-[5%] text-white">
-        <header className="flex items-center justify-between py-5 sm:py-8">
+      <main className="relative z-0 flex h-dvh flex-col text-white sm:px-[5%]">
+        <header className="hidden items-center justify-between py-5 sm:flex sm:py-8">
           <div className="flex items-center gap-3 text-[1.05rem] font-medium tracking-[2px]">
             <svg
               width="24"
@@ -52,7 +35,7 @@ export default function Home() {
           </a>
         </header>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center pb-5 sm:pb-8">
+        <div className="flex min-h-0 flex-1 items-center justify-center sm:pb-8">
           <Chat />
         </div>
       </main>

@@ -25,6 +25,60 @@ const SUGGESTIONS = [
   "수료증 발급",
 ];
 
+// 중요 키워드: 화면 아래에 항상 보이고, 누르거나 입력 칸에 비슷한 말을 쓰면 관련 질문이 뜬다.
+// 질문은 모두 data/guide.md에 답이 있는 것만 둔다. (guide.md를 고치면 여기도 함께 고친다)
+const KEYWORDS: { label: string; match: string[]; questions: string[] }[] = [
+  {
+    label: "숙소",
+    match: ["숙소", "숙박", "비품", "객실"],
+    questions: [
+      "숙소에 뭐가 있어요?",
+      "숙소 입실 시간은?",
+      "숙소 키를 잃어버렸어요",
+      "교육 전날 숙박 가능?",
+    ],
+  },
+  {
+    label: "주차",
+    match: ["주차", "택시", "오시는", "교통"],
+    questions: ["주차할 수 있나요?", "택시는 어떻게 부르나요?", "오시는 길 알려 주세요"],
+  },
+  {
+    label: "수료증",
+    match: ["수료"],
+    questions: ["수료증 발급 방법", "수료 조건이 뭐예요?"],
+  },
+  {
+    label: "마감",
+    match: ["마감", "대기"],
+    questions: ["교육이 마감됐는데 어떻게 해요?", "대기자 등록 방법"],
+  },
+  {
+    label: "식당",
+    match: ["식당", "매점", "식사"],
+    questions: ["식당 이용 규칙", "식사 시간은?", "매점 전화번호"],
+  },
+  {
+    label: "신청",
+    match: ["신청"],
+    questions: [
+      "교육 신청 방법",
+      "신청 결과는 어디서 확인해요?",
+      "전화로 교육 신청할 수 있나요?",
+    ],
+  },
+  {
+    label: "교육비",
+    match: ["교육비", "비용", "무료"],
+    questions: ["교육비는 얼마예요?", "숙식 무료인가요?"],
+  },
+  {
+    label: "연락처",
+    match: ["연락", "전화", "문의"],
+    questions: ["담당 부서 전화번호", "홈페이지 이용 문의는 어디로 하나요?"],
+  },
+];
+
 const GREETING: Message = {
   role: "bot",
   text: "안녕하세요! 다물어봐 챗봇입니다. 교육 신청, 숙소, 수료증 등 궁금한 점을 물어보세요.",
@@ -35,6 +89,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLLIElement>(null);
+  // 눌러서 펼친 키워드 (없으면 null)
+  const [openKeyword, setOpenKeyword] = useState<string | null>(null);
+
+  // 입력한 글에 키워드가 들어 있으면 그 키워드를, 아니면 눌러서 펼친 키워드를 보여 준다.
+  const typedKeyword = KEYWORDS.find((k) =>
+    k.match.some((word) => input.includes(word)),
+  );
+  const related = typedKeyword ?? KEYWORDS.find((k) => k.label === openKeyword);
 
   // 새 말이 생기면 대화 칸을 맨 아래로 내린다.
   useEffect(() => {
@@ -54,6 +116,7 @@ export default function Chat() {
     const next: Message[] = [...messages, { role: "user", text: question }];
     setMessages(next);
     setInput("");
+    setOpenKeyword(null);
     setLoading(true);
 
     // 서버로 보낼 대화: 인사말·고장 안내는 빼고, 최근 10개만. 화면의 "bot"은 "assistant"로 바꿔 보낸다.
@@ -132,6 +195,54 @@ export default function Chat() {
           ))}
         </div>
       )}
+
+      {/* 관련 질문: 키워드를 누르거나 입력 칸에 키워드를 쓰면 뜬다. 누르면 그 질문이 바로 전송된다. */}
+      {related && (
+        <div
+          aria-label={`${related.label} 관련 질문`}
+          className="flex flex-col gap-1 border-t border-zinc-200 px-5 py-2 dark:border-zinc-800"
+        >
+          <p className="text-xs text-zinc-500">{related.label} 관련 질문</p>
+          {related.questions.map((question) => (
+            <button
+              key={question}
+              type="button"
+              disabled={loading}
+              onClick={() => void sendQuestion(question)}
+              className="rounded-lg px-3 py-1.5 text-left text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-40 dark:text-blue-300 dark:hover:bg-blue-950"
+            >
+              {question}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 중요 키워드: 항상 보인다. 누르면 관련 질문이 펼쳐지고, 다시 누르면 접힌다. */}
+      <div className="flex flex-wrap gap-2 border-t border-zinc-200 px-5 py-2 dark:border-zinc-800">
+        <span className="self-center text-xs text-zinc-500">
+          중요 키워드
+        </span>
+        {KEYWORDS.map((keyword) => {
+          const active = related?.label === keyword.label;
+          return (
+            <button
+              key={keyword.label}
+              type="button"
+              aria-pressed={active}
+              onClick={() =>
+                setOpenKeyword(active && !typedKeyword ? null : keyword.label)
+              }
+              className={
+                active
+                  ? "shrink-0 rounded-full bg-blue-600 px-3 py-1 text-sm text-white"
+                  : "shrink-0 rounded-full border border-zinc-300 px-3 py-1 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }
+            >
+              {keyword.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* 개발 단위 4: 개인정보 안내 문구를 항상 보여 준다. */}
       <p

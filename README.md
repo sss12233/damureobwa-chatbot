@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# [공무원 직무전문교육] 다물어봐 챗봇
 
-## Getting Started
+공무원교육 홈페이지 이용자가 **교육 신청·마감·대기자 등록·숙식·비품·전날 숙박·수료증** 같은 질문을
+전화 대신 챗봇에게 물어볼 수 있게 만든 PoC(아이디어 확인용) 서비스입니다.
 
-First, run the development server:
+## 무엇을 하나요?
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- 준비된 안내 자료(`data/guide.md`)에 있는 내용으로만 답합니다. 자료에 없는 내용은 지어내지 않습니다.
+- 모르는 질문이나 본인 확인이 필요한 질문은 담당 부서 전화번호와 문의 가능 시간을 안내합니다.
+- 교육과 상관없는 질문에는 답하지 않고 정해진 문구로 안내합니다.
+- 추천 질문 버튼, 중요 키워드 줄, "이어서 물어보기"로 입력 없이도 질문할 수 있습니다.
+- 화면에 개인정보 입력 금지 안내를 항상 보여 줍니다. 질문 기록은 저장하지 않습니다.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 기술 스택
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js (App Router) + React + Tailwind CSS
+- OpenAI API (`gpt-4.1-mini`) — 서버 쪽 코드(`app/api/chat/route.ts`)에서만 호출
+- 배포: Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 폴더 안내
 
-## Learn More
+| 파일 | 역할 |
+|---|---|
+| `PRD.md` | 서비스 기획서 (목표, 기능, 범위, 보안 검토) |
+| `PLAN.md` | 이번 사이클 작업 계획서와 성공 기준 |
+| `DESIGN.md` | 설계 문서 |
+| `CHECK.md` | 성공 기준 점검과 보안 점검 결과 |
+| `data/guide.md` | 챗봇이 읽고 답하는 안내 자료 |
+| `data/test-questions.md` | 시험 질문 (자료에 있는 8개 + 없는 2개 + 추가 점검 6개) |
+| `app/chat.tsx` | 챗봇 화면 |
+| `app/api/chat/route.ts` | 질문을 받아 AI에게 전달하는 서버 코드 |
+| `lib/prompt.ts` | AI에게 주는 규칙(지시문) |
 
-To learn more about Next.js, take a look at the following resources:
+## 직접 실행해 보기
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. `.env` 파일을 만들고 아래 값을 넣습니다. (이 파일은 저장소에 올리지 않습니다.)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```
+   OPENAI_API_KEY=발급받은_키
+   OPENAI_MODEL=gpt-4.1-mini
+   ```
 
-## Deploy on Vercel
+2. 설치하고 실행합니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. 브라우저에서 http://localhost:3000 을 엽니다.
+
+## 시험 결과 (2026-11-12, 자동 시험)
+
+- 자료에 있는 질문 8개 중 8개 정답
+- 모르는 질문 2개 모두 담당 부서 연락처와 문의 시간 안내
+- 응답 시간 10개 모두 5초 이내 (약 1~2초)
+
+## 주의
+
+- 안내 자료는 홈페이지에 공개된 내용과 일반 안내만 담았습니다.
+- 질문 내용은 답변을 만들기 위해 OpenAI(해외 AI 서비스)로 전달됩니다.

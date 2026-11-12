@@ -93,6 +93,22 @@ export default function Chat() {
   );
   const related = typedKeyword ?? KEYWORDS.find((k) => k.label === openKeyword);
 
+  // 이어서 물어볼 질문: 챗봇이 답한 직후, 방금 질문과 같은 주제의 다른 질문을 최대 2개 보여 준다.
+  const lastMessage = messages[messages.length - 1];
+  const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.text;
+  const followUps =
+    !loading && lastMessage.role === "bot" && !lastMessage.isError && lastUserText
+      ? (KEYWORDS.find(
+          (k) =>
+            k.questions.includes(lastUserText) ||
+            k.match.some((word) => lastUserText.includes(word)),
+        )
+          ?.questions.filter(
+            (q) => !q.includes(lastUserText) && !lastUserText.includes(q),
+          )
+          .slice(0, 2) ?? [])
+      : [];
+
   // 새 말이 생기면 대화 칸을 맨 아래로 내린다.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -169,6 +185,21 @@ export default function Chat() {
         {loading && (
           <li className="max-w-[80%] self-start rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2 text-zinc-500 dark:bg-zinc-800">
             답변 작성 중…
+          </li>
+        )}
+        {followUps.length > 0 && (
+          <li className="flex flex-wrap items-center gap-2 self-start">
+            <span className="text-xs text-zinc-500">이어서 물어보기</span>
+            {followUps.map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => void sendQuestion(question)}
+                className="rounded-full border border-blue-200 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950"
+              >
+                {question}
+              </button>
+            ))}
           </li>
         )}
         <li ref={bottomRef} aria-hidden="true" />

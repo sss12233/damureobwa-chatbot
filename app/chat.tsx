@@ -49,11 +49,6 @@ const KEYWORDS: { label: string; match: string[]; questions: string[] }[] = [
     questions: ["수료증 발급 방법", "수료 조건이 뭐예요?"],
   },
   {
-    label: "마감",
-    match: ["마감", "대기"],
-    questions: ["교육이 마감됐는데 어떻게 해요?", "대기자 등록 방법"],
-  },
-  {
     label: "식당",
     match: ["식당", "매점", "식사"],
     questions: ["식당 이용 규칙", "식사 시간은?", "매점 전화번호"],
@@ -249,7 +244,7 @@ export default function Chat() {
         role="note"
         className="border-t border-amber-200 bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
       >
-        ⚠️ 이름, 전화번호, 주민등록번호 등 개인정보는 입력하지 마세요.
+        ⚠️ 이름, 전화번호, 주민등록번호 등 개인정보는 입력하지 마세요. 질문은 답변을 만들기 위해 OpenAI(해외 AI 서비스)로 전달됩니다.
       </p>
 
       <form

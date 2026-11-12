@@ -11,6 +11,7 @@ const TIMEOUT_MS = 10_000; // 10초 넘으면 고장으로 본다
 const MAX_BODY_LENGTH = 20_000; // 받는 데이터 전체 최대 글자 수
 const MAX_MESSAGE_LENGTH = 2_000; // 대화 한 개(질문·답)의 최대 글자 수
 const MAX_TOTAL_LENGTH = 8_000; // 대화 10개를 합친 최대 글자 수
+const MAX_ANSWER_TOKENS = 500; // AI 답변 최대 길이(토큰)
 const RATE_LIMIT_COUNT = 20; // 1분에 보낼 수 있는 질문 수
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
@@ -71,11 +72,31 @@ function parseMessages(body: unknown): ChatMessage[] | null {
   const question = last.content.trim();
   if (question.length === 0 || question.length > MAX_QUESTION_LENGTH) return null;
 
-  return messages;
+  // 보안: 화면이 보낸 "챗봇이 한 말(assistant)"은 진짜인지 확인할 수 없으므로 버리고,
+  // 이용자 질문만 AI에게 넘긴다. 앞쪽 질문도 500자 제한을 똑같이 적용한다.
+  const userMessages = messages.filter((m) => m.role === "user");
+  if (userMessages.some((m) => m.content.length > MAX_QUESTION_LENGTH)) return null;
+
+  return userMessages;
+}
+
+// 보안: 우리 화면(같은 사이트)에서 보낸 JSON 요청만 받는다.
+// 다른 사이트가 방문자 브라우저로 몰래 부르는 것을 막는다.
+function isTrustedRequest(request: Request): boolean {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) return false;
+  // 브라우저는 이 헤더를 스스로 붙인다. 없으면(서버끼리 호출 등) 통과시킨다.
+  const site = request.headers.get("sec-fetch-site");
+  return site === null || site === "same-origin" || site === "none";
 }
 
 export async function POST(request: Request) {
-  if (isRateLimited(request)) return errorResponse(429);
+  if (!isTrustedRequest(request)) return errorResponse(403);
+  if (isRateLimited(request)) {
+    // 남용을 알아챌 수 있게 사실만 남긴다. (질문·답 내용은 남기지 않는다)
+    console.warn("[chat] 요청 횟수 제한에 걸림");
+    return errorResponse(429);
+  }
 
   let body: unknown;
   try {
@@ -95,8 +116,10 @@ export async function POST(request: Request) {
   try {
     const client = new OpenAI({ apiKey, timeout: TIMEOUT_MS, maxRetries: 0 });
     const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL ?? "gpt-5.4-mini",
+      model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
       messages: [{ role: "system", content: buildSystemPrompt() }, ...messages],
+      // 비용 보호: 답이 아주 길어지지 않게 상한을 둔다. (5문장 답에는 충분하다)
+      max_completion_tokens: MAX_ANSWER_TOKENS,
     });
 
     const answer = completion.choices[0]?.message?.content?.trim();

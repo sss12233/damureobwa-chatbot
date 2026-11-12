@@ -7,7 +7,39 @@ const MAX_QUESTION_LENGTH = 500; // 질문 최대 글자 수
 const MAX_MESSAGES = 10; // 서버로 받을 최근 대화 개수
 const TIMEOUT_MS = 10_000; // 10초 넘으면 고장으로 본다
 
+// 남용 방지(비용 보호): 한 사람이 너무 자주·너무 크게 보내지 못하게 막는다.
+const MAX_BODY_LENGTH = 20_000; // 받는 데이터 전체 최대 글자 수
+const MAX_MESSAGE_LENGTH = 2_000; // 대화 한 개(질문·답)의 최대 글자 수
+const MAX_TOTAL_LENGTH = 8_000; // 대화 10개를 합친 최대 글자 수
+const RATE_LIMIT_COUNT = 20; // 1분에 보낼 수 있는 질문 수
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+// 접속자별 최근 요청 시각을 메모리에 잠깐 기억한다. (저장소 없음. 서버가 꺼지면 사라짐)
+const recentRequests = new Map<string, number[]>();
+
+// 1분 안에 20번을 넘기면 true. (서버가 여러 대로 나뉘면 완벽하진 않지만 PoC에는 충분)
+function isRateLimited(request: Request): boolean {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const now = Date.now();
+  const times = (recentRequests.get(ip) ?? []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS,
+  );
+  times.push(now);
+  recentRequests.set(ip, times);
+
+  // 기억이 끝없이 커지지 않게 오래된 접속자는 지운다.
+  if (recentRequests.size > 1000) {
+    for (const [key, value] of recentRequests) {
+      if (now - value[value.length - 1] >= RATE_LIMIT_WINDOW_MS) {
+        recentRequests.delete(key);
+      }
+    }
+  }
+  return times.length > RATE_LIMIT_COUNT;
+}
 
 // 오류는 신호만 보낸다. 고장 안내 문구는 화면이 보여 준다. (질문·답 내용은 기록에 남기지 않는다)
 function errorResponse(status: number) {
@@ -26,7 +58,11 @@ function parseMessages(body: unknown): ChatMessage[] | null {
     const { role, content } = item as { role?: unknown; content?: unknown };
     if (role !== "user" && role !== "assistant") return null;
     if (typeof content !== "string") return null;
+    if (content.length > MAX_MESSAGE_LENGTH) return null;
     messages.push({ role, content });
+  }
+  if (messages.reduce((sum, m) => sum + m.content.length, 0) > MAX_TOTAL_LENGTH) {
+    return null;
   }
 
   // 마지막은 이용자의 질문이어야 하고, 비어 있거나 500자를 넘으면 안 된다.
@@ -39,9 +75,13 @@ function parseMessages(body: unknown): ChatMessage[] | null {
 }
 
 export async function POST(request: Request) {
+  if (isRateLimited(request)) return errorResponse(429);
+
   let body: unknown;
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (raw.length > MAX_BODY_LENGTH) return errorResponse(400);
+    body = JSON.parse(raw);
   } catch {
     return errorResponse(400);
   }

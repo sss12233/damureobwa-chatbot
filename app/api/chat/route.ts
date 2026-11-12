@@ -11,7 +11,7 @@ const TIMEOUT_MS = 10_000; // 10초 넘으면 고장으로 본다
 const MAX_BODY_LENGTH = 20_000; // 받는 데이터 전체 최대 글자 수
 const MAX_MESSAGE_LENGTH = 2_000; // 대화 한 개(질문·답)의 최대 글자 수
 const MAX_TOTAL_LENGTH = 8_000; // 대화 10개를 합친 최대 글자 수
-const MAX_ANSWER_TOKENS = 500; // AI 답변 최대 길이(토큰)
+const MAX_ANSWER_TOKENS = 800; // AI 답변 최대 길이(토큰). 번호 절차 + 추천 질문 줄까지 들어갈 만큼
 const RATE_LIMIT_COUNT = 20; // 1분에 보낼 수 있는 질문 수
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     const completion = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
       messages: [{ role: "system", content: buildSystemPrompt() }, ...messages],
-      // 비용 보호: 답이 아주 길어지지 않게 상한을 둔다. (5문장 답에는 충분하다)
+      // 비용 보호: 답이 아주 길어지지 않게 상한을 둔다. (3~6문장 답에는 충분하다)
       max_completion_tokens: MAX_ANSWER_TOKENS,
     });
 
